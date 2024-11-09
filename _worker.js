@@ -69,7 +69,7 @@ async function replaceResponseText(
     pathnameRegex = pathnameRegex.replace(/^\^/, "");
     return text.replace(
       new RegExp(`((?<!\\.)\\b${proxyHostname}\\b)(${pathnameRegex})`, "g"),
-      `${originHostname}$2`
+      `${originHostname}\$2`
     );
   } else {
     return text.replace(
@@ -105,11 +105,64 @@ Commercial support is available at
 </html>`;
 }
 
+async function passwordPage() {
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Password Required</title>
+</head>
+<body>
+  <h1>Enter Password</h1>
+  <form method="POST" action="/passwd">
+    <label for="password">Password:</label>
+    <input type="password" id="password" name="password" required />
+    <button type="submit">Submit</button>
+    <p> passwd is : a****3 </p>
+
+  </form>
+</body>
+</html>`;
+}
+
+
+async function changeSourcePage(currentSource) {
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Change Source</title>
+</head>
+<body>
+  <h1>Change Proxy Source</h1>
+  <form method="POST" action="/changesource">
+    <label for="proxyHostname">New Proxy Source URL:</label>
+    <input type="text" id="proxyHostname" name="proxyHostname" value="${currentSource}" required />
+    <button type="submit">Change Source</button>
+    <p> searxng list: https://searx.space/  </p>
+  </form>
+</body>
+</html>`;
+}
+
+async function setProxyHostnameCookie(response, proxyHostname) {
+  const cookie = `PROXY_HOSTNAME=${proxyHostname}; Max-Age=86400; Path=/`; // Cookie will last 1 day
+  response.headers.set('Set-Cookie', cookie);
+  return response;
+}
+async function setPasswordCookie(response, password) {
+  const cookie = `password=${password}; Max-Age=86400; Path=/`; // Cookie will last 1 day
+  response.headers.set('Set-Cookie', cookie);
+  return response;
+}
+
 export default {
   async fetch(request, env, ctx) {
     try {
       const {
-        PROXY_HOSTNAME ="baresearch.org",
+        PROXY_HOSTNAME = "baresearch.org",
         PROXY_PROTOCOL = "https",
         PATHNAME_REGEX,
         UA_WHITELIST_REGEX,
@@ -120,79 +173,160 @@ export default {
         REGION_WHITELIST_REGEX,
         REGION_BLACKLIST_REGEX,
         DEBUG = false,
+        PASSWORD = "abc123", // Replace with your actual password
+        REPLACE_STRINGS = [ //正则
+        { "regex": "</footer>", "replacement": "<p>leiyanhui.com <a href=/changesource>changesource</a></p></footer>" },
+        { "regex": "example\\.com", "replacement": "newexample.com" },
+        { "regex": "\\bhello\\b", "replacement": "hi" }
+        ]
+        
       } = env;
+
       const url = new URL(request.url);
       const originHostname = url.hostname;
-      if (
-        !PROXY_HOSTNAME ||
-        (PATHNAME_REGEX && !new RegExp(PATHNAME_REGEX).test(url.pathname)) ||
-        (UA_WHITELIST_REGEX &&
-          !new RegExp(UA_WHITELIST_REGEX).test(
-            request.headers.get("user-agent").toLowerCase()
-          )) ||
-        (UA_BLACKLIST_REGEX &&
-          new RegExp(UA_BLACKLIST_REGEX).test(
-            request.headers.get("user-agent").toLowerCase()
-          )) ||
-        (IP_WHITELIST_REGEX &&
-          !new RegExp(IP_WHITELIST_REGEX).test(
-            request.headers.get("cf-connecting-ip")
-          )) ||
-        (IP_BLACKLIST_REGEX &&
-          new RegExp(IP_BLACKLIST_REGEX).test(
-            request.headers.get("cf-connecting-ip")
-          )) ||
-        (REGION_WHITELIST_REGEX &&
-          !new RegExp(REGION_WHITELIST_REGEX).test(
-            request.headers.get("cf-ipcountry")
-          )) ||
-        (REGION_BLACKLIST_REGEX &&
-          new RegExp(REGION_BLACKLIST_REGEX).test(
-            request.headers.get("cf-ipcountry")
-          ))
-      ) {
-        logError(request, "Invalid");
-        return URL302
-          ? Response.redirect(URL302, 302)
-          : new Response(await nginx(), {
-              headers: {
-                "Content-Type": "text/html; charset=utf-8",
-              },
-            });
+
+      // 获取 cookies 中的密码
+      const cookies = request.headers.get('cookie');
+      const cookieMap = new Map();
+      if (cookies) {
+        cookies.split(';').forEach(cookie => {
+          const [key, value] = cookie.trim().split('=');
+          cookieMap.set(key, value);
+        });
       }
-      url.host = PROXY_HOSTNAME;
-      url.protocol = PROXY_PROTOCOL;
-      const newRequest = createNewRequest(
-        request,
-        url,
-        PROXY_HOSTNAME,
-        originHostname
-      );
-      const originalResponse = await fetch(newRequest);
-      const newResponseHeaders = setResponseHeaders(
-        originalResponse,
-        PROXY_HOSTNAME,
-        originHostname,
-        DEBUG
-      );
-      const contentType = newResponseHeaders.get("content-type") || "";
-      let body;
-      if (contentType.includes("text/")) {
-        body = await replaceResponseText(
-          originalResponse,
-          PROXY_HOSTNAME,
-          PATHNAME_REGEX,
+
+      const storedPassword = cookieMap.get('password');
+      const storedProxyHostname = cookieMap.get('PROXY_HOSTNAME') || PROXY_HOSTNAME;
+
+
+      // 如果没有密码，或者密码不正确，则显示密码输入页面。 如果密码配置的是空 那么不执行密码验证
+      //if (!storedPassword || storedPassword !== PASSWORD) {
+        if (PASSWORD && (!storedPassword || storedPassword !== PASSWORD)) {
+        if (request.method === "POST" && request.url.endsWith("/passwd")) {
+          // 如果是 /passwd 路径的 POST 请求，处理密码验证
+          const formData = await request.formData();
+          const password = formData.get('password');
+          if (password === PASSWORD) {
+            // 密码正确，设置 Cookie 并重定向回原页面
+            const response = new Response("Password Correct. Redirecting...", { status: 302 });
+            response.headers.set('Location', '/'); // 重定向回原页面
+            return setPasswordCookie(response, password);
+          } else {
+            // 密码错误，返回错误提示
+            return new Response("Incorrect Password", { status: 403 });
+          }
+        } else {
+          // 否则显示密码输入页面
+          return new Response(await passwordPage(), { status: 200, headers: { 'Content-Type': 'text/html' } });
+        }
+      }
+  // 处理更换源地址页面 /changesource
+  if (request.url.endsWith("/changesource")) {
+    if (request.method === "POST") {
+      const formData = await request.formData();
+      const newProxyHostname = formData.get('proxyHostname');
+      const response = new Response("Proxy Source Changed. Redirecting...", { status: 302 });
+      response.headers.set('Location', '/'); // 重定向回原页面
+      return setProxyHostnameCookie(response, newProxyHostname);
+    }
+    // GET 请求时显示更换源地址页面
+    return new Response(await changeSourcePage(storedProxyHostname), { status: 200, headers: { 'Content-Type': 'text/html' } });
+  }
+      // 验证通过后继续执行代理逻辑
+        // 验证通过后继续执行代理逻辑
+        if (
+          !storedProxyHostname ||
+          (PATHNAME_REGEX && !new RegExp(PATHNAME_REGEX).test(url.pathname)) ||
+          (UA_WHITELIST_REGEX &&
+            !new RegExp(UA_WHITELIST_REGEX).test(
+              request.headers.get("user-agent").toLowerCase()
+            )) ||
+          (UA_BLACKLIST_REGEX &&
+            new RegExp(UA_BLACKLIST_REGEX).test(
+              request.headers.get("user-agent").toLowerCase()
+            )) ||
+          (IP_WHITELIST_REGEX &&
+            !new RegExp(IP_WHITELIST_REGEX).test(
+              request.headers.get("cf-connecting-ip")
+            )) ||
+          (IP_BLACKLIST_REGEX &&
+            new RegExp(IP_BLACKLIST_REGEX).test(
+              request.headers.get("cf-connecting-ip")
+            )) ||
+          (REGION_WHITELIST_REGEX &&
+            !new RegExp(REGION_WHITELIST_REGEX).test(
+              request.headers.get("cf-ipcountry")
+            )) ||
+          (REGION_BLACKLIST_REGEX &&
+            new RegExp(REGION_BLACKLIST_REGEX).test(
+              request.headers.get("cf-ipcountry")
+            ))
+        ) {
+          logError(request, "Invalid");
+          return URL302
+            ? Response.redirect(URL302, 302)
+            : new Response(await nginx(), {
+                headers: {
+                  "Content-Type": "text/html; charset=utf-8",
+                },
+              });
+        }
+  
+        url.host = storedProxyHostname;
+        url.protocol = PROXY_PROTOCOL;
+        const newRequest = createNewRequest(
+          request,
+          url,
+          storedProxyHostname,
           originHostname
         );
-      } else {
-        body = originalResponse.body;
+      // Attempt to fetch the proxy's response
+      try {
+        const originalResponse = await fetch(newRequest);
+        const newResponseHeaders = setResponseHeaders(
+          originalResponse,
+          PROXY_HOSTNAME,
+          originHostname,
+          DEBUG
+        );
+        const contentType = newResponseHeaders.get("content-type") || "";
+        let body;
+        if (contentType.includes("text/")) {
+          body = await replaceResponseText(
+            originalResponse,
+            PROXY_HOSTNAME,
+            PATHNAME_REGEX,
+            originHostname
+          );
+
+           // Apply multiple replacements from REPLACE_STRINGS
+           if (REPLACE_STRINGS.length > 0) {
+            REPLACE_STRINGS.forEach((replaceRule) => {
+              if (replaceRule && replaceRule.regex && replaceRule.replacement) {
+                const regex = new RegExp(replaceRule.regex, "g");
+                body = body.replace(regex, replaceRule.replacement);
+              }
+            });
+          }
+ 
+
+
+        } else {
+          body = originalResponse.body;
+        }
+        return new Response(body, {
+          status: originalResponse.status,
+          headers: newResponseHeaders,
+        });
+      } catch (err) {
+        // If fetching the proxy source fails, show the change source page
+        logError(request, `Failed to fetch proxy source: ${err.message}`);
+        return new Response(await changeSourcePage(storedProxyHostname), {
+          status: 200,
+          headers: { 'Content-Type': 'text/html' },
+        });
       }
-      return new Response(body, {
-        status: originalResponse.status,
-        headers: newResponseHeaders,
-      });
-    } catch (error) {
-      logError(request, `Fetch error: ${error.message}`);
+    } catch (e) {
       return new Response("Internal Server Error", { status: 500 });
     }
   },
