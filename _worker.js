@@ -175,7 +175,9 @@ export default {
         DEBUG = false,
         PASSWORD = "abc123", // Replace with your actual password
         REPLACE_STRINGS = [ //正则
-        { "regex": "</footer>", "replacement": "<p>leiyanhui.com <a href=/changesource>changesource</a></p></footer>" },
+        { "regex": "</footer>", "replacement": "<p>leiyanhui.com <a href=/changesource>changesource</a> <a href=https://github.com/joyanhui/searxng-cf-proxy-worker.js>github</a> <br/> https://so.cf-cdn-ns.work/search?q={keyword}}</p></footer>" },
+        { "regex": "<title>SearXNG</title>", "replacement": "<title>聚合搜</title>" },
+        { "regex": PROXY_HOSTNAME, "replacement": "so.cf-cdn-ns.work" },
         { "regex": "example\\.com", "replacement": "newexample.com" },
         { "regex": "\\bhello\\b", "replacement": "hi" }
         ]
@@ -291,7 +293,8 @@ export default {
         );
         const contentType = newResponseHeaders.get("content-type") || "";
         let body;
-        if (contentType.includes("text/")) {
+        //处理文本 以及 较为特殊的 application/opensearchdescription+xml; charset=utf-8
+        if (contentType.includes("text/") || contentType.includes("opensearchdescription")) {
           body = await replaceResponseText(
             originalResponse,
             PROXY_HOSTNAME,
