@@ -119,7 +119,7 @@ async function passwordPage() {
     <label for="password">Password:</label>
     <input type="password" id="password" name="password" required />
     <button type="submit">Submit</button>
-    <p> passwd is : a****3 </p> 
+    <p> Password Prompt: Please enter the password "a****3" for verification.   </p> 
     <p>password:str.len == 6 </p>
 </html>`;
 }
