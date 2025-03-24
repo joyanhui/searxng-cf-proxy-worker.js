@@ -181,13 +181,10 @@ export default {
         DEBUG = false,
         PASSWORD = "abc123", // Replace with your actual password
         REPLACE_STRINGS = [ //正则
-        { "regex": "</footer>", "replacement": "<p>leiyanhui.com <a href=/changesource>changesource</a>  joyanhui: <a href=https://github.com/joyanhui/searxng-cf-proxy-worker.js>github</a> <br/> https://XXX/search?category_general=&language=auto&time_range=&safesearch=0&theme=simple&q=%s</p><br>右上角首选项 可以选择后端，设置项只能储存到本地 点击changesource 可以更换反代后端 </footer>" },
+        { "regex": "</footer>", "replacement": "<p>leiyanhui.com <a href=/changesource>ChangeSource</a>  joyanhui: <a href=https://github.com/joyanhui/searxng-cf-proxy-worker.js>github</a></p><br>右上角 首选项 可以切换搜索引擎 <br> 底部 ChangeSource 可以更换反代后端 </footer>" },
         { "regex": "<title>SearXNG</title>", "replacement": "<title>聚合搜</title>" },
         { "regex": PROXY_HOSTNAME, "replacement": "so.cf-cdn-ns.work" },
         { "regex": "<form id=\"search\" method=\"POST\" action=\"\/search\" role=\"search\">", "replacement": "<form id=\"search\" method=\"GET\" action=\"\/search\" role=\"search\">" },
-        { "regex": "example\\.com", "replacement": "newexample.com" },
-        { "regex": "example\\.com", "replacement": "newexample.com" },
-        { "regex": "example\\.com", "replacement": "newexample.com" },
         { "regex": "\\bhello\\b", "replacement": "hi" }
         ]
         
