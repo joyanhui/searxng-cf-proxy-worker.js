@@ -119,10 +119,8 @@ async function passwordPage() {
     <label for="password">Password:</label>
     <input type="password" id="password" name="password" required />
     <button type="submit">Submit</button>
-    <p> passwd is : a****3 </p>
-    <p></p>
-    <p> searxng list: https://searx.space/  </p>
-    <p>leiyanhui.com <a href=/changesource>changesource</a> <a href=https://github.com/joyanhui/searxng-cf-proxy-worker.js>github</a> <br/> https://so.cf-cdn-ns.work/search?category_general=&language=auto&time_range=&safesearch=0&theme=simple&q=%s</p>
+    <p> passwd is : a****3 </p> 
+    <p>password:str.len == 6 </p>
 </html>`;
 }
 
@@ -136,19 +134,20 @@ async function changeSourcePage(currentSource) {
   <title>Change Source</title>
 </head>
 <body>
-  <h1>Change Proxy Source</h1>
+  <h1>修改反代源地</h1>
   <form method="POST" action="/changesource">
     <label for="proxyHostname">New Proxy Source URL:</label>
     <input type="text" id="proxyHostname" name="proxyHostname" value="${currentSource}" required />
+     <p> 不用填写https:// 不能填写本站地址  </p>
     <button type="submit">Change Source</button>
-    <p> searxng list: https://searx.space/  </p>
-    <p> same：  </p>
+    <p> searxng list: https://searx.space/  可以从这里获得更多 </p>
+    <p> 例如：  </p>
     <p> opnxng.com </p>
-    <p> baresearch.org  </p>
+    <p> baresearch.org  （默认）</p>
     <p> priv.au  </p>
     <p> searx.be  </p>
-    <p> etsi.me  copp.gg fairsuch.net </p>
-    <p>leiyanhui.com <a href=/changesource>changesource</a> <a href=https://github.com/joyanhui/searxng-cf-proxy-worker.js>github</a> <br/> https://so.cf-cdn-ns.work/search?category_general=&language=auto&time_range=&safesearch=0&theme=simple&q=%s</p>
+    <p> etsi.me  copp.gg   fairsuch.net    </p>
+    <p> 还有跟多，自己访问https://searx.space/ 获取 不  </p>
   </form>
 </body>
 </html>`;
@@ -182,7 +181,7 @@ export default {
         DEBUG = false,
         PASSWORD = "abc123", // Replace with your actual password
         REPLACE_STRINGS = [ //正则
-        { "regex": "</footer>", "replacement": "<p>leiyanhui.com <a href=/changesource>changesource</a>  joyanhui: <a href=https://github.com/joyanhui/searxng-cf-proxy-worker.js>github</a> <br/> https://so.cf-cdn-ns.work/search?category_general=&language=auto&time_range=&safesearch=0&theme=simple&q=%s</p></footer>" },
+        { "regex": "</footer>", "replacement": "<p>leiyanhui.com <a href=/changesource>changesource</a>  joyanhui: <a href=https://github.com/joyanhui/searxng-cf-proxy-worker.js>github</a> <br/> https://XXX/search?category_general=&language=auto&time_range=&safesearch=0&theme=simple&q=%s</p><br>右上角首选项 可以选择后端，设置项只能储存到本地 点击changesource 可以更换反代后端 </footer>" },
         { "regex": "<title>SearXNG</title>", "replacement": "<title>聚合搜</title>" },
         { "regex": PROXY_HOSTNAME, "replacement": "so.cf-cdn-ns.work" },
         { "regex": "<form id=\"search\" method=\"POST\" action=\"\/search\" role=\"search\">", "replacement": "<form id=\"search\" method=\"GET\" action=\"\/search\" role=\"search\">" },
