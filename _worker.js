@@ -142,6 +142,12 @@ async function changeSourcePage(currentSource) {
     <input type="text" id="proxyHostname" name="proxyHostname" value="${currentSource}" required />
     <button type="submit">Change Source</button>
     <p> searxng list: https://searx.space/  </p>
+    <p> same：  </p>
+    <p> opnxng.com </p>
+    <p> baresearch.org  </p>
+    <p> priv.au  </p>
+    <p> searx.be  </p>
+    <p> etsi.me  copp.gg fairsuch.net </p>
     <p>leiyanhui.com <a href=/changesource>changesource</a> <a href=https://github.com/joyanhui/searxng-cf-proxy-worker.js>github</a> <br/> https://so.cf-cdn-ns.work/search?category_general=&language=auto&time_range=&safesearch=0&theme=simple&q=%s</p>
   </form>
 </body>
@@ -176,7 +182,7 @@ export default {
         DEBUG = false,
         PASSWORD = "abc123", // Replace with your actual password
         REPLACE_STRINGS = [ //正则
-        { "regex": "</footer>", "replacement": "<p>leiyanhui.com <a href=/changesource>changesource</a> <a href=https://github.com/joyanhui/searxng-cf-proxy-worker.js>github</a> <br/> https://so.cf-cdn-ns.work/search?category_general=&language=auto&time_range=&safesearch=0&theme=simple&q=%s</p></footer>" },
+        { "regex": "</footer>", "replacement": "<p>leiyanhui.com <a href=/changesource>changesource</a>  joyanhui: <a href=https://github.com/joyanhui/searxng-cf-proxy-worker.js>github</a> <br/> https://so.cf-cdn-ns.work/search?category_general=&language=auto&time_range=&safesearch=0&theme=simple&q=%s</p></footer>" },
         { "regex": "<title>SearXNG</title>", "replacement": "<title>聚合搜</title>" },
         { "regex": PROXY_HOSTNAME, "replacement": "so.cf-cdn-ns.work" },
         { "regex": "<form id=\"search\" method=\"POST\" action=\"\/search\" role=\"search\">", "replacement": "<form id=\"search\" method=\"GET\" action=\"\/search\" role=\"search\">" },
