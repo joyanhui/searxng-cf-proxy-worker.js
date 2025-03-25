@@ -6,7 +6,7 @@ function logError(request, message) {
   );
 }
 
-function createNewRequest(request, url, proxyHostname, originHostname) {
+function createNewRequest(request, url, proxyHostname, originHostname, bodyBuffer) {
   const newRequestHeaders = new Headers(request.headers);
   for (const [key, value] of newRequestHeaders) {
     if (value.includes(originHostname)) {
@@ -22,7 +22,7 @@ function createNewRequest(request, url, proxyHostname, originHostname) {
   return new Request(url.toString(), {
     method: request.method,
     headers: newRequestHeaders,
-    body: request.body,
+    body: bodyBuffer,
   });
 }
 
@@ -142,8 +142,8 @@ async function changeSourcePage(currentSource) {
     <button type="submit">Change Source</button>
     <p> searxng list: https://searx.space/  可以从这里获得更多 </p>
     <p> 例如：  </p>
-    <p> opnxng.com </p>
-    <p> baresearch.org  （默认）</p>
+    <p> opnxng.com   （默认）</p>
+    <p> baresearch.org</p>
     <p> priv.au  </p>
     <p> searx.be  </p>
     <p> etsi.me  copp.gg   fairsuch.net    </p>
@@ -168,7 +168,7 @@ export default {
   async fetch(request, env, ctx) {
     try {
       const {
-        PROXY_HOSTNAME = "baresearch.org",
+        PROXY_HOSTNAME = "opnxng.com",
         PROXY_PROTOCOL = "https",
         PATHNAME_REGEX,
         UA_WHITELIST_REGEX,
@@ -181,7 +181,7 @@ export default {
         DEBUG = false,
         PASSWORD = "abc123", // Replace with your actual password
         REPLACE_STRINGS = [ //正则
-        { "regex": "</footer>", "replacement": "<p>leiyanhui.com <a href=/changesource>ChangeSource</a>  joyanhui: <a href=https://github.com/joyanhui/searxng-cf-proxy-worker.js>github</a></p><br>右上角 首选项 可以切换搜索引擎 <br> 底部 ChangeSource 可以更换反代后端 </footer>" },
+        { "regex": "</footer>", "replacement": "<p>leiyanhui.com <a href=/changesource>ChangeSource</a>  joyanhui: <a href=https://github.com/joyanhui/searxng-cf-proxy-worker.js>github</a></p><br>右上角 首选项 可以切换搜索引擎 （暂时无法保存）<br> 底部 ChangeSource 可以更换反代后端 </footer>" },
         { "regex": "<title>SearXNG</title>", "replacement": "<title>聚合搜</title>" },
         { "regex": PROXY_HOSTNAME, "replacement": "so.cf-cdn-ns.work" },
         { "regex": "<form id=\"search\" method=\"POST\" action=\"\/search\" role=\"search\">", "replacement": "<form id=\"search\" method=\"GET\" action=\"\/search\" role=\"search\">" },
@@ -282,12 +282,18 @@ export default {
   
         url.host = storedProxyHostname;
         url.protocol = PROXY_PROTOCOL;
-        const newRequest = createNewRequest(
-          request,
-          url,
-          storedProxyHostname,
-          originHostname
-        );
+          // 读取请求体为缓冲数据（非GET/HEAD方法）
+      const bodyBuffer = ['GET', 'HEAD'].includes(request.method) 
+      ? undefined 
+      : await request.clone().arrayBuffer();
+
+      const newRequest = createNewRequest(
+        request,
+        url,
+        storedProxyHostname,
+        originHostname,
+        bodyBuffer
+      );
       // Attempt to fetch the proxy's response
       try {
         const originalResponse = await fetch(newRequest);
@@ -328,12 +334,17 @@ export default {
           headers: newResponseHeaders,
         });
       } catch (err) {
-        // If fetching the proxy source fails, show the change source page
-        logError(request, `Failed to fetch proxy source: ${err.message}`);
-        return new Response(await changeSourcePage(storedProxyHostname), {
-          status: 200,
-          headers: { 'Content-Type': 'text/html' },
-        });
+          // 如果是/preferences路径的请求失败，不要直接返回修改源页面
+  if (url.pathname === '/preferences') {
+    logError(request, `Failed to fetch /preferences: ${err.message}`);
+    return new Response("Failed to save preferences", { status: 500 });
+  }
+  // 其他情况才返回修改源页面
+  logError(request, `Failed to fetch proxy source: ${err.message}`);
+  return new Response(await changeSourcePage(storedProxyHostname), {
+    status: 200,
+    headers: { 'Content-Type': 'text/html' },
+  });
       }
     } catch (e) {
       return new Response("Internal Server Error", { status: 500 });
