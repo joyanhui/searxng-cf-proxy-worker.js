@@ -121,6 +121,7 @@ async function passwordPage() {
     <button type="submit">Submit</button>
     <p> Password Prompt: Please enter the password "a****3" for verification.   </p> 
     <p>password:str.len == 6 </p>
+    <p> 部分后端地址使用人数太多 会导致api封禁 建议登陆后点击 底部的 ChangeSource 更换</p>
 </html>`;
 }
 
@@ -142,8 +143,8 @@ async function changeSourcePage(currentSource) {
     <button type="submit">Change Source</button>
     <p> searxng list: https://searx.space/  可以从这里获得更多 </p>
     <p> 例如：  </p>
-    <p> opnxng.com   （默认）</p>
-    <p> baresearch.org</p>
+    <p> opnxng.com   </p>
+    <p> baresearch.org </p>
     <p> priv.au  </p>
     <p> searx.be  </p>
     <p> etsi.me  copp.gg   fairsuch.net    </p>
@@ -168,7 +169,7 @@ export default {
   async fetch(request, env, ctx) {
     try {
       const {
-        PROXY_HOSTNAME = "opnxng.com",
+        PROXY_HOSTNAME = "baresearch.org",
         PROXY_PROTOCOL = "https",
         PATHNAME_REGEX,
         UA_WHITELIST_REGEX,
